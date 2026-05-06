@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Casse-brique – Soleil & Plage</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: linear-gradient(#87CEEB, #FFE4B5);
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: linear-gradient(#1E90FF, #00CED1);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .hint {
+      text-align: center;
+      color: #033;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="800" height="500"></canvas>
+  <div class="hint">☀️ Souris ou flèches ← → pour déplacer la planche</div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // Paddle
+    const paddle = {
+      w: 110,
+      h: 14,
+      x: canvas.width / 2 - 55,
+      speed: 7
+    };
+
+    // Ball
+    const ball = {
+      x: canvas.width / 2,
+      y: canvas.height - 60,
+      r: 8,
+      dx: 4,
+      dy: -4
+    };
+
+    // Bricks
+    const rows = 5;
+    const cols = 10;
+    const brick = {
+      w: 70,
+      h: 20,
+      pad: 10,
+      offX: 35,
+      offY: 40
+    };
+
+    const colors = ['#FFD700', '#FFA500', '#FF7F50', '#FF6347', '#FF4500'];
+
+    let bricks = [];
+    for (let r = 0; r < rows; r++) {
+      bricks[r] = [];
+      for (let c = 0; c < cols; c++) {
+        bricks[r][c] = { hit: false };
+      }
+    }
+
+    let right = false;
+    let left = false;
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') right = true;
+      if (e.key === 'ArrowLeft') left = true;
+    });
+
+    document.addEventListener('keyup', e => {
+      if (e.key === 'ArrowRight') right = false;
+      if (e.key === 'ArrowLeft') left = false;
+    });
+
+    document.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      paddle.x = x - paddle.w / 2;
+    });
+
+    function drawPaddle() {
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(paddle.x, canvas.height - paddle.h - 10, paddle.w, paddle.h);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFF0';
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBricks() {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!bricks[r][c].hit) {
+            const x = c * (brick.w + brick.pad) + brick.offX;
+            const y = r * (brick.h + brick.pad) + brick.offY;
+            ctx.fillStyle = colors[r];
+            ctx.fillRect(x, y, brick.w, brick.h);
+          }
+        }
+      }
+    }
+
+    function collision() {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const b = bricks[r][c];
+          if (!b.hit) {
+            const x = c * (brick.w + brick.pad) + brick.offX;
+            const y = r * (brick.h + brick.pad) + brick.offY;
+            if (
+              ball.x > x &&
+              ball.x < x + brick.w &&
+              ball.y > y &&
+              ball.y < y + brick.h
+            ) {
+              ball.dy *= -1;
+              b.hit = true;
+            }
+          }
+        }
+      }
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawPaddle();
+      drawBall();
+      collision();
+
+      // Wall bounce
+      if (ball.x + ball.dx > canvas.width || ball.x + ball.dx < 0) ball.dx *= -1;
+      if (ball.y + ball.dy < 0) ball.dy *= -1;
+
+      // Paddle bounce
+      if (
+        ball.y + ball.dy > canvas.height - paddle.h - 10 &&
+        ball.x > paddle.x &&
+        ball.x < paddle.x + paddle.w
+      ) {
+        ball.dy *= -1;
+      }
+
+      // Lose
+      if (ball.y > canvas.height) {
+        alert('🌴 Partie terminée !');
+        document.location.reload();
+      }
+
+      // Move paddle
+      if (right && paddle.x < canvas.width - paddle.w) paddle.x += paddle.speed;
+      if (left && paddle.x > 0) paddle.x -= paddle.speed;
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      requestAnimationFrame(update);
+    }
+
+    update();
+  </script>
+</body>
+</html>
